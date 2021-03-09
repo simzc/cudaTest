@@ -16,12 +16,15 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="main.cu" />
+    <CudaCompile Include="StructInvese_demo.cpp">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Pointer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="StructInvese.cpp">
+    <ClCompile Include="StructInverse.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
