@@ -3,81 +3,123 @@
 #include<cublas_v2.h>
 #include<helper_cuda.h>
 #include<device_launch_parameters.h>
-#include<vector>
+#include<iomanip>
 
 
-//define struct
-struct matrix
+void init_array(float* a, int N, int n)
 {
-	/*float xx;
-	float yx;
-	float zx;
-	float xy;
-	float yy;
-	float zy;
-	float xz;
-	float yz;
-	float zz;*/
-	
-	float p[9];
-};
-
-void init_matix(matrix* a,int n)
-{
-	for (int i = 0; i < n; i++)
+	for (int i = 0; i < n * n * N; i++) 
 	{
-		/*a[i].xx = i + 1;
-		a[i].xy = i + 2;
-		a[i].xz = i + 3;
-		a[i].yx = i + 4;
-		a[i].yy = i + 5;
-		a[i].yz = i + 6;
-		a[i].zx = i + 7;
-		a[i].zy = i + 8;
-		a[i].zz = i + 9;*/
-		a->p[0] = 1;
+		a[i] = i*i + 2.5f;
 	}
 }
 
-__global__ void LU_decompose_cuk(
-	matrix* dev_ptr,
-	matrix* res_ptr,
-	int Num)
+void set_array(float** a, float* b, int N, int n)
 {
-	cublasHandle_t handle;
-	cublasCreate(&handle);
-
-
-
-	cublasDestroy(handle);
+	for (int i = 0; i < N; i++)
+	{
+		a[i] =  &b[n * n * i] ;
+	}
 }
+
+void set_array_device(float** a, float* b, int N, int n)
+{
+	for (int i = 0; i < N; i++)
+	{
+		a[i] = &b[n * n * i];
+	}
+}
+
+
 
 int main()
 {
-	int N = 6;
-	matrix* hos_matrix = new matrix[N];
-	matrix* dev_matrix = NULL;
-	matrix* dev_result = NULL;
+	const int N(3), n(3);
 
-	float p[9];
-
-	matrix a1;
-	float* A[] = { a1.p };
-
-	std::vector<float>a;
+	float src_h[n * n * N];
 	
+	init_array(src_h, N, n);
+
+	float* src_d = NULL;
+	checkCudaErrors(cudaMalloc((void**)&src_d, n * n * N * sizeof(float)));
+	checkCudaErrors(cudaMemcpy(src_d,src_h, n * n * N * sizeof(float),cudaMemcpyHostToDevice));
+	float* A[N];
+	set_array_device(A, src_d, N, n);
+
+	float** A_d = NULL;
+	//checkCudaErrors(cudaMalloc<float*>(&A_d, sizeof(A)));
+	checkCudaErrors(cudaMalloc((void**)&A_d, sizeof(A)));
+	checkCudaErrors(cudaMemcpy(A_d, A, sizeof(A), cudaMemcpyHostToDevice));
+
+	//checkCudaErrors(cudaMemcpy(A, A_d, sizeof(A), cudaMemcpyDeviceToHost));
+
+	float dst_h[n * n * N];
+	init_array(dst_h, N, n);
+
+	float* C[N];
+	float* dst_d = NULL;
+	checkCudaErrors(cudaMalloc((void**)&dst_d, n * n * N * sizeof(float)));
+	set_array_device(C, dst_d, N, n);
 	
-	init_matix(hos_matrix, N);
+	float** C_d = NULL;
+	checkCudaErrors(cudaMalloc((void**)&C_d, sizeof(C)));
+	//checkCudaErrors(cudaMalloc<float*>(&C_d, sizeof(C)));
+	checkCudaErrors(cudaMemcpy(C_d, C, sizeof(C), cudaMemcpyHostToDevice));
 
-	checkCudaErrors(cudaMalloc((void**)&dev_matrix, N * sizeof(matrix)));
-	checkCudaErrors(cudaMalloc((void**)&dev_result, N * sizeof(matrix)));
-	checkCudaErrors(cudaMemcpy(dev_matrix, hos_matrix, N * sizeof(matrix), cudaMemcpyHostToDevice));
-	cudaMemset()
+	cublasHandle_t handle;
+	cublasCreate_v2(&handle);
+	int batchSize = N;
+	int* P, * INFO;
+	checkCudaErrors(cudaMalloc((void**)&P, n * batchSize * sizeof(int)));
+	checkCudaErrors(cudaMalloc((void**)&INFO, batchSize * sizeof(int)));
+	checkCudaErrors(cublasSgetrfBatched(handle, n, A_d, n, P, INFO, batchSize));
 
-	dim3 block(128, 1);
+	int INFOh = 0;
+	checkCudaErrors(cudaMemcpy(&INFOh, INFO, sizeof(int), cudaMemcpyDeviceToHost));
 
-	dim3 cuda_grid_size = dim3((N + block.x - 1) / block.x, 1);
+	if (INFOh == n)
+	{
+		fprintf(stderr, "Factorization Failed: Matrix is singular\n");
+		cudaDeviceReset();
+		exit(EXIT_FAILURE);
+	}
 
-	LU_decompose_cuk<<<cuda_grid_size,block>>>
-		()
+	checkCudaErrors(cublasSgetriBatched(handle, n, A_d, n, P, C_d, n, INFO, batchSize));
+
+	checkCudaErrors(cudaMemcpy(dst_h, dst_d, n*n*N*sizeof(float), cudaMemcpyDeviceToHost));
+	//cudaMemcpy(dst_h, dst_d, n * n * N * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaFree(C_d);
+	cudaFree(A_d);
+	cudaFree(P), cudaFree(INFO), cublasDestroy_v2(handle);
+
+
+	int col(1);
+	for (int i = 0; i < N; i++)
+	{
+		std::cout << "The input matrix :" << std::endl;
+		for (int j = 0; j < n * n; j++)
+		{
+			std::cout << std::setiosflags(std::ios::right) <<std::setiosflags(std::ios::fixed) << std::setprecision(4) << src_h[i * n * n + j] << "     ";
+			if (col % 3 == 0)
+			{
+				std::cout << std::endl;
+			}
+			col++;
+		}
+		col = 1;
+		std::cout << "The output matrix :" << std::endl;
+		for (int j = 0; j < n * n; j++)
+		{
+			std::cout << std::setiosflags(std::ios::right) << std::setiosflags(std::ios::fixed) <<std::setprecision(4)<< dst_h[i * n * n + j] << "     ";
+			if (col % 3 == 0)
+			{
+				std::cout << std::endl;
+			}
+			col++;
+		}
+		col = 1;
+	}
+
+
+	return 0;
 }
