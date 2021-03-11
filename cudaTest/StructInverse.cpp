@@ -12,7 +12,7 @@ void init_array(float* a, int N, int n)
 {
 	for (int i = 0; i < n * n * N; i++) 
 	{
-		a[i] = i*i + 2.5f;
+		a[i] = i * i + 2.5f;
 	}
 }
 
@@ -94,7 +94,6 @@ int main()
 
 	/*dim3 block(128, 1);
 	dim3 cuda_grid_size = dim3((1 + block.x - 1) / block.x, 1);*/
-	
 	//det_kernel << <cuda_grid_size, block >> > (src_d, n, Res);
 	det_kernel << <1, 1 >> > (src_d, n);
 
