@@ -128,6 +128,5 @@ int main()
 		col = 1;
 	}
 
-
 	return 0;
 }
