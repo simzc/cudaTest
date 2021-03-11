@@ -126,7 +126,7 @@
       <AdditionalDependencies>cublas.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
-      <CodeGeneration>compute_75,sm_75</CodeGeneration>
+      <CodeGeneration>compute_80,sm_80</CodeGeneration>
       <TargetMachinePlatform>64</TargetMachinePlatform>
     </CudaCompile>
   </ItemDefinitionGroup>
@@ -152,8 +152,9 @@
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="cublasDeterminantCal.cpp" />
     <ClCompile Include="Pointer.cpp" />
-    <ClCompile Include="StructInverse.cpp" />
+    <CudaCompile Include="StructInverse.cpp" />
     <CudaCompile Include="StructInvese_demo.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

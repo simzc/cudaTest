@@ -6,6 +6,8 @@
 #include<iomanip>
 
 
+__host__ __device__ unsigned int IDX(unsigned int i, unsigned  int j, unsigned int ld) { return j * ld + i; }
+
 void init_array(float* a, int N, int n)
 {
 	for (int i = 0; i < n * n * N; i++) 
@@ -30,13 +32,29 @@ void set_array_device(float** a, float* b, int N, int n)
 	}
 }
 
+__device__ float det_cal(float* src_d, int n, float Res)
+{
+	float Result(1.0f);
+	for (int i = 0; i < n; i++)
+	{
+		Result *= src_d[IDX(i, i, n)];
+	}
+	Res = Result;
+	return Res;
+}
+
+
+__global__ void det_kernel(float* src_d, int n)
+{
+	float Res(0.0f);
+	printf("det on GPU:%f\n", det_cal(src_d, n, Res));
+}
 
 
 int main()
 {
 	const int N(3), n(3);
 
-	
 	float src_h[n * n * N];			//cpu数组src_h；
 	init_array(src_h, N, n);		//cpu数组src_h初始化；
 
@@ -72,6 +90,13 @@ int main()
 	checkCudaErrors(cudaMalloc((void**)&INFO, batchSize * sizeof(int)));
 
 	checkCudaErrors(cublasSgetrfBatched(handle, n, A_d, n, P, INFO, batchSize));	//LU分解;参数lda为主导维cuBLAS为列主导，即决定了行数；
+	cudaDeviceSynchronize();
+
+	/*dim3 block(128, 1);
+	dim3 cuda_grid_size = dim3((1 + block.x - 1) / block.x, 1);*/
+	
+	//det_kernel << <cuda_grid_size, block >> > (src_d, n, Res);
+	det_kernel << <1, 1 >> > (src_d, n);
 
 	int INFOh = 0;
 	checkCudaErrors(cudaMemcpy(&INFOh, INFO, sizeof(int), cudaMemcpyDeviceToHost));
@@ -93,7 +118,7 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 
-	checkCudaErrors(cudaMemcpy(dst_h, dst_d, n*n*N*sizeof(float), cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(dst_h, dst_d, n * n * N * sizeof(float), cudaMemcpyDeviceToHost));
 
 	//释放内存及销毁句柄；
 	cudaFree(C_d);
