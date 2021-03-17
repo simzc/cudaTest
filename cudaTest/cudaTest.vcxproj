@@ -152,6 +152,7 @@
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="thrust_sort.cpp" />
     <CudaCompile Include="cublasDeterminantCal.cpp" />
     <ClCompile Include="Pointer.cpp" />
     <CudaCompile Include="StructInverse.cpp" />

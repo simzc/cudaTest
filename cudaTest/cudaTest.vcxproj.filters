@@ -25,6 +25,9 @@
     <CudaCompile Include="StructInverse.cpp">
       <Filter>Source Files</Filter>
     </CudaCompile>
+    <CudaCompile Include="thrust_sort.cpp">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Pointer.cpp">
