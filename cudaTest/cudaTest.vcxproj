@@ -152,8 +152,10 @@
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="reference.cpp" />
     <CudaCompile Include="thrust_sort.cpp" />
     <CudaCompile Include="cublasDeterminantCal.cpp" />
+    <CudaCompile Include="arrayPointer.cpp" />
     <ClCompile Include="Pointer.cpp" />
     <CudaCompile Include="StructInverse.cpp" />
     <CudaCompile Include="StructInvese_demo.cpp" />
